@@ -118,11 +118,21 @@ const resolvers = {
     createCourses: async (parent, args, contextValue, info) => {
       console.log(args);
       let value = await createCourse(args);
+      pubsub.publish("COURSE_CREATED", { courseCreated: getCourse() });
       return value;
     },
     deleteCourses: async (parent, args, contextValue, info) => {
       let result = await deleteCourse(args.id);
+      pubsub.publish("COURSE_DELETED", { courseDeleted: getCourse() });
       return result.affectedRows === 1 ? `Deleted` : `Delete Failed`;
+    },
+  },
+  Subscription: {
+    courseCreated: {
+      subscribe: () => pubsub.asyncIterator(["COURSE_CREATED"]),
+    },
+    courseDeleted: {
+      subscribe: () => pubsub.asyncIterator(["COURSE_DELETED"]),
     },
   },
 };
