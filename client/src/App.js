@@ -46,10 +46,17 @@ const CREATE_COURSE = gql`
   }
 `;
 
+const DELETE_COURSE = gql`
+  mutation DeleteCourses($deleteCoursesId: ID!) {
+    deleteCourses(id: $deleteCoursesId)
+  }
+`;
+
 function App() {
   const [courses, setCourses] = useState();
   const { data } = useQuery(COURSES);
   const [createMutation, { data: createData }] = useMutation(CREATE_COURSE);
+  const [deleteMutation, { data: deleteData }] = useMutation(DELETE_COURSE);
 
   useEffect(() => {
     if (data) {
@@ -74,6 +81,17 @@ function App() {
         updatedAt: "2022-02-21 16:58:05",
         price: price,
         total_students: 0,
+      },
+    });
+  };
+
+  const deleteCourse = (evt) => {
+    evt.preventDefault();
+    let items = document.getElementById("delete-course-form").elements;
+    let id = items.id.value;
+    deleteMutation({
+      variables: {
+        deleteCoursesId: id,
       },
     });
   };
@@ -144,7 +162,27 @@ function App() {
             </button>
           </form>
         </div>
-        <div className="course-info"></div>
+        <div className="course-info">
+          <h3>Delete course</h3>
+          <form id="delete-course-form">
+            <div class="form-group">
+              <label for="id">ID</label>
+              <input
+                type="text"
+                class="form-control"
+                id="id"
+                placeholder="Enter ID"
+              />
+            </div>
+            <button
+              type="submit"
+              class="btn btn-primary"
+              onClick={deleteCourse}
+            >
+              DELETE
+            </button>
+          </form>
+        </div>
       </div>
     </div>
   );
