@@ -2,6 +2,15 @@ const express = require("express");
 const cors = require("cors");
 const bodyParser = require("body-parser");
 const mysql = require("mysql2/promise");
+const { createServer } = require("http");
+const { makeExecutableSchema } = require("@graphql-tools/schema");
+const {
+  ApolloServerPluginDrainHttpServer,
+} = require("@apollo/server/plugin/drainHttpServer");
+const { WebSocketServer } = require("ws");
+const { useServer } = require("graphql-ws/lib/use/ws");
+const { expressMiddleware } = require("@apollo/server/express4");
+const { PubSub } = require("graphql-subscriptions");
 
 const pool = mysql.createPool({
   host: "localhost",
@@ -12,6 +21,8 @@ const pool = mysql.createPool({
   connectionLimit: 10,
   queueLimit: 0,
 });
+
+const pubsub = new PubSub();
 
 async function query(query) {
   const result = await pool.query(query);
@@ -53,8 +64,68 @@ const typeDefs = gql`
   }
 `;
 
-const app = express();
+async function getCourse(id) {
+  if (id) {
+    let prod = await query(`SELECT * FROM courses WHERE id =${id}`);
+    return prod;
+  } else {
+    let prod = await query(`SELECT * FROM courses`);
+    return prod;
+  }
+}
 
-app.listen(4000, () => {
-  console.log(`App running at 4000`);
+const app = express();
+app.use(cors());
+const httpServer = createServer(app);
+const schema = makeExecutableSchema({ typeDefs, resolvers });
+
+// Provide resolver functions for your schema fields
+const resolvers = {
+  Query: {
+    hello: () => "Welcome to graphql!",
+    getCourses: async () => {
+      let products = await getCourse();
+      return products;
+    },
+    async getCourseById(parent, args, contextValue, info) {
+      let prod = await getCourse(args.id);
+      return prod[0];
+    },
+  },
+};
+
+// Creating the WebSocket server
+const wsServer = new WebSocketServer({
+  server: httpServer,
+  path: "/graphql",
+});
+const serverCleanup = useServer({ schema }, wsServer);
+
+const server = new ApolloServer({
+  schema,
+  plugins: [
+    // Proper shutdown for the HTTP server.
+    ApolloServerPluginDrainHttpServer({ httpServer }),
+
+    // Proper shutdown for the WebSocket server.
+    {
+      async serverWillStart() {
+        return {
+          async drainServer() {
+            await serverCleanup.dispose();
+          },
+        };
+      },
+    },
+  ],
+});
+
+server.start().then((res) => {
+  server.applyMiddleware({ app, path: "/" });
+  app.use("/graphql", cors(), bodyParser.json(), expressMiddleware(server));
+  const PORT = 4000;
+  // Now that our HTTP server is fully set up, we can listen to it.
+  httpServer.listen(PORT, () => {
+    console.log(`Server is now running on http://localhost:${PORT}/graphql`);
+  });
 });
