@@ -52,6 +52,32 @@ const DELETE_COURSE = gql`
   }
 `;
 
+const COURSES_CREATED = gql`
+  subscription onCourseAdded {
+    courseCreated {
+      id
+      title
+      description
+      price
+      published
+      total_students
+    }
+  }
+`;
+
+const COURSES_DELETED = gql`
+  subscription onCourseDeleted {
+    courseDeleted {
+      id
+      title
+      description
+      price
+      published
+      total_students
+    }
+  }
+`;
+
 function App() {
   const [courses, setCourses] = useState();
   const { data } = useQuery(COURSES);
@@ -63,6 +89,17 @@ function App() {
       setCourses(data.getCourses);
     }
   }, [data]);
+
+  useSubscription(COURSES_CREATED, {
+    onData: (data) => {
+      setCourses(data.data.data.courseCreated);
+    },
+  });
+  useSubscription(COURSES_DELETED, {
+    onData: (data) => {
+      setCourses(data.data.data.courseDeleted);
+    },
+  });
 
   const createCourse = (evt) => {
     evt.preventDefault();
