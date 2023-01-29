@@ -2,6 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const bodyParser = require("body-parser");
 const mysql = require("mysql2/promise");
+const { ApolloServer, gql } = require("apollo-server-express");
 const { createServer } = require("http");
 const { makeExecutableSchema } = require("@graphql-tools/schema");
 const {
@@ -99,7 +100,6 @@ async function deleteCourse(id) {
 const app = express();
 app.use(cors());
 const httpServer = createServer(app);
-const schema = makeExecutableSchema({ typeDefs, resolvers });
 
 // Provide resolver functions for your schema fields
 const resolvers = {
@@ -136,6 +136,8 @@ const resolvers = {
     },
   },
 };
+
+const schema = makeExecutableSchema({ typeDefs, resolvers });
 
 // Creating the WebSocket server
 const wsServer = new WebSocketServer({
