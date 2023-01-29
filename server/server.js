@@ -74,6 +74,28 @@ async function getCourse(id) {
   }
 }
 
+async function createCourse(args) {
+  try {
+    let insertQuery = `INSERT INTO courses(title, description, price, total_students, published, createdAt, updatedAt) VALUES("${args.title}", "${args.description}", ${args.price}, ${args.total_students}, ${args.published}, "${args.createdAt}", "${args.updatedAt}")`;
+    let result = await query(insertQuery);
+    let inserted = await getCourse(result.insertId);
+    return inserted[0];
+  } catch (error) {
+    return new Error("Failed to create!" + error);
+  }
+}
+
+async function deleteCourse(id) {
+  try {
+    let deleteQuery = `DELETE FROM courses WHERE id=${id}`;
+    let result = await query(deleteQuery);
+    console.log(result);
+    return result;
+  } catch (error) {
+    throw Error("Failed to delete!" + error);
+  }
+}
+
 const app = express();
 app.use(cors());
 const httpServer = createServer(app);
@@ -90,6 +112,17 @@ const resolvers = {
     async getCourseById(parent, args, contextValue, info) {
       let prod = await getCourse(args.id);
       return prod[0];
+    },
+  },
+  Mutation: {
+    createCourses: async (parent, args, contextValue, info) => {
+      console.log(args);
+      let value = await createCourse(args);
+      return value;
+    },
+    deleteCourses: async (parent, args, contextValue, info) => {
+      let result = await deleteCourse(args.id);
+      return result.affectedRows === 1 ? `Deleted` : `Delete Failed`;
     },
   },
 };
